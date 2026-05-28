@@ -12,7 +12,7 @@ export function Plans() {
     {
       id: 'free', name: 'Free', price: 'R$ 0', period: 'para sempre',
       sub: 'Comece sem compromisso', icon: Zap, iconColor: '#22C55E',
-      features: ['Tokens de IA limitados por dia','Controle básico de gastos','Categorização manual','Indique amigos e ganhe mais tokens diários','Indicações ilimitadas'],
+      features: ['Tokens de IA limitados por dia','Controle básico de gastos','Categorização manual','Indique amigos e ganhe mais tokens diários','Indicações limitadas'],
     },
     {
       id: 'basic', name: 'Basic', price: 'R$ 15', period: '/mês',

@@ -140,7 +140,27 @@ export default function Perfil() {
       <button className="btn-primary" onClick={saveAll}>
         {saved ? '✓ Salvo!' : 'Salvar alterações'}
       </button>
-
+{/* Indicações */}
+<div className="card">
+  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>🔗 Indicar amigos</p>
+  <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>
+    Cada indicação aumenta seu limite diário de tokens (+2 tokens/dia).
+    {u.plan === 'free' && ` Plano Free: ${u.referralCount || 0}/5 indicações usadas.`}
+  </p>
+  <button
+    onClick={() => {
+      const max = u.plan === 'free' ? 5 : 999
+      const count = u.referralCount || 0
+      if (count >= max) { alert('Limite atingido! Faça upgrade para indicações ilimitadas.'); return }
+      set({ referralCount: count + 1, aiTokensDaily: (u.aiTokensDaily || 10) + 2, aiTokens: (u.aiTokens || 0) + 2 })
+      alert(`Indicação registrada! Limite diário agora: ${(u.aiTokensDaily || 10) + 2} tokens.`)
+    }}
+    disabled={u.plan === 'free' && (u.referralCount || 0) >= 5}
+    style={{ width: '100%', padding: '11px', background: (u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--bg3)' : 'var(--green-bg)', border: `1px solid ${(u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--border)' : 'rgba(34,197,94,0.3)'}`, borderRadius: 'var(--radius-sm)', color: (u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--text3)' : 'var(--green)', fontWeight: 600, fontSize: 14 }}
+  >
+    {u.plan === 'free' && (u.referralCount || 0) >= 5 ? 'Limite atingido — faça upgrade' : `Registrar indicação (${u.referralCount || 0}/${u.plan === 'free' ? 5 : '∞'})`}
+  </button>
+</div>
       <button className="btn-primary" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)' }} onClick={() => nav('/planos')}>
         Upgrade de plano →
       </button>
