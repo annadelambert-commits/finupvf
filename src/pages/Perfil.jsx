@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
-import { ChevronLeft } from 'lucide-react'
 
 function RadioRow({ label, sub, selected, onClick }) {
   return (
@@ -28,7 +27,6 @@ export default function Perfil() {
   const nav = useNavigate()
   const { u, set, reset } = useUser()
 
-  // Local edit state mirrors profile
   const [name, setName]       = useState(u.name || '')
   const [salary, setSalary]   = useState(u.incomeSalary || '')
   const [ageRange, setAge]    = useState(u.ageRange || '')
@@ -42,17 +40,68 @@ export default function Perfil() {
   const [goalDeadline, setDL] = useState(u.goalDeadline || '')
   const [saved, setSaved]     = useState(false)
 
+  // Indicações
+  const [referralEmail, setReferralEmail] = useState('')
+  const [referralMsg, setReferralMsg]     = useState('')
+
   function saveAll() {
     set({ name, incomeSalary: salary, ageRange, jobType, incomeRange, livesWith, riskProfile, investmentExp: investExp, debtLevel, dependents, goalDeadline })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const rL = { conservador:'Conservador', moderado:'Moderado', arrojado:'Arrojado', agressivo:'Agressivo' }
+  function handleRefer() {
+    const email = referralEmail.trim().toLowerCase()
+    if (!email || !email.includes('@')) {
+      setReferralMsg('❌ Digite um email válido.')
+      return
+    }
+
+    const referrals = u.referrals || []
+
+    // Verifica se email já foi indicado
+    if (referrals.find(r => r.email === email)) {
+      setReferralMsg('❌ Esse email já foi indicado antes.')
+      return
+    }
+
+    // Monta o link do app — usa a URL atual do Netlify ou localhost
+    const appLink = window.location.origin
+
+    // Abre o app de email com mensagem pronta
+    const subject = encodeURIComponent('Conheça o FinUp — seu assistente financeiro inteligente!')
+    const body = encodeURIComponent(
+      `Olá!\n\n` +
+      `Estou usando o FinUp, um app de controle financeiro com IA, e queria te indicar.\n\n` +
+      `Com o FinUp você consegue:\n` +
+      `• Controlar seus gastos por categoria\n` +
+      `• Receber recomendações de investimento personalizadas\n` +
+      `• Aprender finanças com o LearnUP e ganhar tokens\n` +
+      `• Ter uma IA financeira que responde dúvidas do seu perfil\n\n` +
+      `Acesse agora: ${appLink}\n\n` +
+      `É gratuito para começar!\n\n` +
+      `Abraços,\n${u.name || 'Um amigo'}`
+    )
+
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`
+
+    // Registra a indicação e adiciona 5 tokens (uma vez por email)
+    set({
+      referrals: [...referrals, { email, date: new Date().toLocaleDateString('pt-BR') }],
+      aiTokens: (u.aiTokens || 0) + 5,
+    })
+
+    setReferralEmail('')
+    setReferralMsg(`✅ Convite enviado para ${email}! +5 tokens adicionados.`)
+    setTimeout(() => setReferralMsg(''), 4000)
+  }
+
+  const rL  = { conservador:'Conservador', moderado:'Moderado', arrojado:'Arrojado', agressivo:'Agressivo' }
   const livL = { parents:'Mora com os pais', alone:'Mora sozinho(a)', roomies:'Divide apartamento', partner:'Mora com cônjuge' }
 
   return (
     <div style={{ padding: '52px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
       {/* Avatar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--green-bg)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>👤</div>
@@ -74,7 +123,61 @@ export default function Perfil() {
         </div>
       </div>
 
-      {/* ── Editable fields ── */}
+      {/* Indicações */}
+      <div className="card">
+        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>🔗 Indicar amigos</p>
+        <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.6 }}>
+          Indique um amigo e ganhe <strong style={{ color: 'var(--green)' }}>+5 tokens</strong> ao enviar o convite.
+          Cada email só pode ser indicado uma vez.
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input
+            className="input-field"
+            type="email"
+            placeholder="email do amigo"
+            value={referralEmail}
+            onChange={e => setReferralEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRefer()}
+            style={{ flex: 1 }}
+          />
+          <button
+            onClick={handleRefer}
+            disabled={!referralEmail.trim()}
+            style={{
+              padding: '11px 14px',
+              background: referralEmail.trim() ? 'var(--green)' : 'var(--bg3)',
+              color: referralEmail.trim() ? '#000' : 'var(--text3)',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 600, fontSize: 13, flexShrink: 0,
+              border: '1px solid transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            Enviar convite
+          </button>
+        </div>
+
+        {referralMsg && (
+          <p style={{ fontSize: 12, color: referralMsg.includes('✅') ? 'var(--green)' : 'var(--red)', marginBottom: 8 }}>
+            {referralMsg}
+          </p>
+        )}
+
+        {(u.referrals || []).length > 0 && (
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 4 }}>
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>CONVITES ENVIADOS</p>
+            {(u.referrals || []).map((r, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 4 }}>
+                <span>📧 {r.email}</span>
+                <span style={{ color: 'var(--green)', fontWeight: 600 }}>+5 tokens</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Editable fields */}
       <Section title="Identificação">
         <label style={{ fontSize: 12, color: 'var(--text2)' }}>Como quer ser chamado(a)</label>
         <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome ou apelido" />
@@ -140,27 +243,7 @@ export default function Perfil() {
       <button className="btn-primary" onClick={saveAll}>
         {saved ? '✓ Salvo!' : 'Salvar alterações'}
       </button>
-{/* Indicações */}
-<div className="card">
-  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>🔗 Indicar amigos</p>
-  <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>
-    Cada indicação aumenta seu limite diário de tokens (+2 tokens/dia).
-    {u.plan === 'free' && ` Plano Free: ${u.referralCount || 0}/5 indicações usadas.`}
-  </p>
-  <button
-    onClick={() => {
-      const max = u.plan === 'free' ? 5 : 999
-      const count = u.referralCount || 0
-      if (count >= max) { alert('Limite atingido! Faça upgrade para indicações ilimitadas.'); return }
-      set({ referralCount: count + 1, aiTokensDaily: (u.aiTokensDaily || 10) + 2, aiTokens: (u.aiTokens || 0) + 2 })
-      alert(`Indicação registrada! Limite diário agora: ${(u.aiTokensDaily || 10) + 2} tokens.`)
-    }}
-    disabled={u.plan === 'free' && (u.referralCount || 0) >= 5}
-    style={{ width: '100%', padding: '11px', background: (u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--bg3)' : 'var(--green-bg)', border: `1px solid ${(u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--border)' : 'rgba(34,197,94,0.3)'}`, borderRadius: 'var(--radius-sm)', color: (u.plan === 'free' && (u.referralCount || 0) >= 5) ? 'var(--text3)' : 'var(--green)', fontWeight: 600, fontSize: 14 }}
-  >
-    {u.plan === 'free' && (u.referralCount || 0) >= 5 ? 'Limite atingido — faça upgrade' : `Registrar indicação (${u.referralCount || 0}/${u.plan === 'free' ? 5 : '∞'})`}
-  </button>
-</div>
+
       <button className="btn-primary" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)' }} onClick={() => nav('/planos')}>
         Upgrade de plano →
       </button>
